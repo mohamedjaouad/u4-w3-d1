@@ -1,0 +1,116 @@
+CREATE TABLE clienti (
+    numero_cliente SERIAL PRIMARY KEY,            
+    nome VARCHAR(50) NOT NULL,                   
+    cognome VARCHAR(50) NOT NULL,                 
+    anno_di_nascita INT NOT NULL,                
+    regione_residenza VARCHAR(50) NOT NULL
+	); 
+
+    CREATE TABLE prodotti (
+    id_prodotto SERIAL PRIMARY KEY,               
+    descrizione VARCHAR(255) NOT NULL,            
+    in_produzione BOOLEAN NOT NULL, 
+    in_commercio BOOLEAN NOT NULL , 
+    data_attivazione DATE NOT NULL,               
+    data_disattivazione DATE NOT NULL,
+	);
+
+    CREATE TABLE fornitori (
+    numero_fornitore SERIAL PRIMARY KEY,          
+    denominazione VARCHAR(100) NOT NULL,         
+    regione_residenza VARCHAR(50) NOT NULL      
+);
+CREATE TABLE fatture (
+    numero_fattura SERIAL PRIMARY KEY,          
+    tipologia VARCHAR(10) NOT NULL,               
+    importo numeric(10,2) NOT NULL , 
+    iva INT NOT NULL ,      
+    id_cliente INT NOT NULL,                    
+    data_fattura DATE NOT NULL,                  
+    numero_fornitore INT NOT NULL,               
+
+    CONSTRAINT fk_fatture_clienti
+        FOREIGN KEY (id_cliente)
+        REFERENCES clienti (numero_cliente),
+
+    CONSTRAINT fk_fatture_fornitori
+        FOREIGN KEY (numero_fornitore)
+        REFERENCES fornitori (numero_fornitore)
+);
+INSERT INTO clienti (nome, cognome, anno_di_nascita, regione_residenza) VALUES
+('Mario', 'Rossi', 1982, 'Lombardia'),
+('Luca', 'Bianchi', 1990, 'Emilia-Romagna');
+
+INSERT INTO fornitori (denominazione, regione_residenza) VALUES
+('Tech Srl', 'Lombardia'),
+('Forniture Spa', 'Veneto'),
+('GlobalTrade', 'Lazio');
+
+INSERT INTO prodotti (descrizione, in_produzione, in_commercio, data_attivazione, data_disattivazione) VALUES
+('Laptop X200', TRUE, TRUE, '2017-03-10', NULL),
+('Smartphone Z10', TRUE, FALSE, '2017-07-22', '2020-01-01'),
+('Monitor UltraHD', FALSE, TRUE, '2018-05-15', NULL),
+('Stampante LaserPro', TRUE, TRUE, '2017-11-30', NULL);
+
+INSERT INTO fatture (tipologia, importo, iva, id_cliente, data_fattura, numero_fornitore) VALUES
+('A', 150.00, 20, 1, '2023-01-10', 1),
+('B', 980.50, 10, 2, '2023-02-15', 2),
+('A', 75.00, 20, 3, '2023-03-01', 1);
+
+
+
+-- 1)
+SELECT *
+FROM clienti
+WHERE nome = 'Mario';
+-- 2)
+SELECT nome, cognome
+FROM clienti
+WHERE anno_di_nascita = 1982;
+-- 3)
+SELECT COUNT(*) AS numero_fatture_iva_20
+FROM fatture
+WHERE iva = 20;
+-- 4)
+SELECT *
+FROM prodotti
+WHERE EXTRACT(YEAR FROM data_attivazione) = 2017
+  AND (in_produzione = TRUE OR in_commercio = TRUE);
+--  5)
+SELECT fatture.*, clienti.nome, clienti.cognome, clienti.regione_residenza
+FROM fatture
+JOIN clienti ON fatture.id_cliente = clienti.numero_cliente
+WHERE fatture.importo < 1000;
+-- 6)
+SELECT fatture.numero_fattura, fatture.importo, fatture.iva, fatture.data_fattura,fornitori.denominazione AS nome_fornitore
+FROM fatture 
+JOIN fornitori ON fatture.numero_fornitore = fornitori.numero_fornitore;
+-- 7)
+SELECT EXTRACT(YEAR FROM data_fattura) AS anno,COUNT(*) AS numero_fatture
+FROM fatture
+WHERE iva = 20
+GROUP BY anno
+ORDER BY anno;
+-- 8)
+SELECT EXTRACT(YEAR FROM data_fattura) AS anno,COUNT(*) AS numero_fatture,SUM(importo) AS totale_importi
+FROM fatture
+GROUP BY anno
+ORDER BY anno;
+-- 9)
+SELECT EXTRACT(YEAR FROM data_fattura) AS anno,COUNT(*) AS numero_fatture
+FROM fatture
+WHERE tipologia = 'A'
+GROUP BY anno;
+-- 10)
+SELECT clienti.regione_residenza,SUM(fatture.importo) AS totale_importi
+FROM fatture
+JOIN clienti ON fatture.id_cliente = clienti.numero_cliente
+GROUP BY clienti.regione_residenza;
+-- 11)
+SELECT COUNT(DISTINCT clienti.numero_cliente) AS clienti_con_fatture_over_50
+FROM clienti
+JOIN fatture ON fatture.id_cliente = clienti.numero_cliente
+WHERE clienti.anno_di_nascita = 1980
+  AND fatture.importo > 50;
+
+
